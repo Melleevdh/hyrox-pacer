@@ -1,0 +1,7 @@
+node_modules/
+.vercel/
+garmin/bin/
+*.prg
+*.der
+*.pem
+.DS_Store

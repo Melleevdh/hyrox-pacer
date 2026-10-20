@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0c">
+  <title>Hyrox Pacer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main id="app" class="wrap">
+    <p class="loading">Laden…</p>
+  </main>
+
+  <template id="tpl-auth">
+    <section class="auth">
+      <h1 class="logo">HYROX<span>PACER</span></h1>
+      <p class="tagline">Zet je splits klaar, laad ze op je Garmin en zie tijdens de race of je voor of achter ligt.</p>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-mode="login" role="tab">Inloggen</button>
+        <button class="tab" data-mode="register" role="tab">Account maken</button>
+      </div>
+      <form class="card form" id="auth-form" autocomplete="on">
+        <label>Gebruikersnaam
+          <input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required minlength="3" maxlength="24">
+        </label>
+        <label>Wachtwoord
+          <input name="password" type="password" autocomplete="current-password" required minlength="8">
+        </label>
+        <p class="error" hidden></p>
+        <button class="btn primary" type="submit">Inloggen</button>
+      </form>
+    </section>
+  </template>
+
+  <template id="tpl-home">
+    <header class="top">
+      <h1 class="logo small">HYROX<span>PACER</span></h1>
+      <div class="who"><span class="user"></span> <button class="link" id="logout">Uitloggen</button></div>
+    </header>
+
+    <section class="card watch">
+      <div class="card-head">
+        <h2>Je horloge</h2>
+        <span class="pill" id="watch-status"></span>
+      </div>
+      <div id="device-list"></div>
+      <details id="pair-box">
+        <summary>Horloge koppelen</summary>
+        <p class="hint">Open <b>Hyrox Pacer</b> op je Garmin. Er verschijnt een code van 6 cijfers. Vul die hier in.</p>
+        <form id="pair-form" class="row">
+          <input name="code" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" placeholder="123456" class="code-input" required>
+          <button class="btn primary" type="submit">Koppel</button>
+        </form>
+        <p class="error" hidden></p>
+      </details>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Schema's</h2>
+        <button class="btn primary" id="new-plan">+ Nieuw schema</button>
+      </div>
+      <p class="hint">Het <b>actieve</b> schema wordt op je horloge geladen als je de app opent.</p>
+      <div id="plan-list" class="plans"></div>
+    </section>
+  </template>
+
+  <template id="tpl-editor">
+    <header class="top">
+      <button class="link" id="back">← Terug</button>
+      <h2 class="editor-title">Schema</h2>
+      <span></span>
+    </header>
+    <form id="plan-form" class="editor">
+      <label class="card">Naam
+        <input name="name" maxlength="60" placeholder="Bijv. Hyrox Amsterdam – sub 1:20" required>
+      </label>
+
+      <div class="card quick">
+        <h3>Snel invullen</h3>
+        <div class="row">
+          <label>Looptempo per km
+            <input id="pace" placeholder="5:15" inputmode="numeric">
+          </label>
+          <button type="button" class="btn" id="apply-pace">Op alle 8 runs</button>
+        </div>
+      </div>
+
+      <div class="card splits">
+        <div class="splits-head"><span>Onderdeel</span><span>Doel</span><span>Totaal</span></div>
+        <ol id="split-rows"></ol>
+      </div>
+
+      <p class="error" hidden></p>
+      <div class="savebar">
+        <div class="total"><small>Eindtijd</small><strong id="total">0:00</strong></div>
+        <button class="btn primary" type="submit">Opslaan</button>
+      </div>
+    </form>
+  </template>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
