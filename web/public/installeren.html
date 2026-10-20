@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0c">
+  <title>Installeren – Hyrox Pacer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="wrap guide">
+    <header class="top">
+      <a class="link" href="/">← Naar de site</a>
+      <h1 class="logo small">HYROX<span>PACER</span></h1>
+    </header>
+
+    <h2 class="guide-title">Zo zet je Hyrox Pacer op je Garmin</h2>
+    <p class="hint">Werkt op de <b>Venu 3</b> en <b>Venu 3S</b>. Je doet dit één keer; daarna laadt het horloge je schema vanzelf.</p>
+
+    <nav class="toc card">
+      <a href="#download">1. Download</a>
+      <a href="#installeren">2. Op je horloge</a>
+      <a href="#openen">3. Openen</a>
+      <a href="#koppelen">4. Koppelen</a>
+      <a href="#racedag">5. Racedag</a>
+      <a href="#problemen">Problemen?</a>
+    </nav>
+
+    <section id="download" class="card step">
+      <span class="step-no">1</span>
+      <h3>Download de app</h3>
+      <p>Download het app-bestand naar je computer. Het heet <code>hyrox-pacer.prg</code>.</p>
+      <a class="btn primary" id="dl" href="/hyrox-pacer.prg" download>Download hyrox-pacer.prg</a>
+      <p class="note" id="dl-missing" hidden>De download staat er nog niet. Vraag het even aan degene die je deze site heeft gestuurd.</p>
+    </section>
+
+    <section id="installeren" class="card step">
+      <span class="step-no">2</span>
+      <h3>Zet hem op je horloge</h3>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-os="win" role="tab">Windows</button>
+        <button class="tab" data-os="mac" role="tab">Mac</button>
+      </div>
+      <ol class="steps" data-os-panel="win">
+        <li>Sluit je horloge met de <b>USB-kabel</b> aan op je computer.</li>
+        <li>Open <b>Verkenner</b>. Je horloge staat links onder <i>Deze pc</i> als <b>Venu 3</b>.</li>
+        <li>Open <b>Internal Storage → GARMIN → Apps</b>.</li>
+        <li>Sleep <code>hyrox-pacer.prg</code> in de map <b>Apps</b>.</li>
+        <li>Koppel het horloge los. Na een paar seconden staat de app erop.</li>
+      </ol>
+      <ol class="steps" data-os-panel="mac" hidden>
+        <li>Een Mac kan een Garmin niet zelf openen. Installeer daarom eenmalig het gratis programma <a href="https://openmtp.ganeshrvel.com" target="_blank" rel="noopener"><b>OpenMTP</b></a>.</li>
+        <li>Sluit <b>Garmin Express</b> af als die open staat (anders blokkeert hij de verbinding).</li>
+        <li>Sluit je horloge met de <b>USB-kabel</b> aan en open OpenMTP.</li>
+        <li>Ga rechts (het horloge) naar <b>GARMIN → Apps</b>.</li>
+        <li>Sleep <code>hyrox-pacer.prg</code> van links (je Mac) naar de map <b>Apps</b>.</li>
+        <li>Koppel het horloge los. Na een paar seconden staat de app erop.</li>
+      </ol>
+    </section>
+
+    <section id="openen" class="card step">
+      <span class="step-no">3</span>
+      <h3>Open de app</h3>
+      <ol class="steps">
+        <li>Zorg dat je telefoon in de buurt is, met <b>Bluetooth aan</b> en de <b>Garmin Connect-app</b> open of op de achtergrond.</li>
+        <li>Druk op je horloge op de <b>bovenste knop</b> (rechtsboven). Je ziet je lijst met activiteiten en apps.</li>
+        <li>Scroll naar <b>Hyrox Pacer</b> en tik erop. Staat hij er niet direct tussen? Scroll helemaal naar beneden: nieuwe apps staan soms onder een kopje <b>Apps</b>, of je voegt hem toe via <b>Toevoegen</b>.</li>
+      </ol>
+    </section>
+
+    <section id="koppelen" class="card step">
+      <span class="step-no">4</span>
+      <h3>Koppel je horloge aan je account</h3>
+      <ol class="steps">
+        <li>De eerste keer toont het horloge <b>Koppel je horloge</b> met een code van <b>6 cijfers</b>.</li>
+        <li>Log op deze site in (of maak een account) en vul de code in bij <b>Je horloge</b>.</li>
+        <li>Binnen een paar seconden toont het horloge je <b>actieve schema</b> met je doeltijd.</li>
+      </ol>
+      <p class="hint">De code is 15 minuten geldig. Verlopen? Sluit de app en open hem opnieuw voor een nieuwe code.</p>
+      <a class="btn" href="/">Naar mijn account</a>
+    </section>
+
+    <section id="racedag" class="card step">
+      <span class="step-no">5</span>
+      <h3>Op racedag</h3>
+      <ol class="steps">
+        <li>Zet op de website het juiste schema op <b>actief</b>.</li>
+        <li>Open Hyrox Pacer vlak voor de start, met je telefoon in de buurt. Het schema wordt geladen en op je horloge bewaard. Tijdens de race heb je je telefoon niet meer nodig.</li>
+        <li>Druk op <b>START</b> (bovenste knop) als het startschot gaat.</li>
+        <li>Druk op <b>LAP</b> (onderste knop) aan het eind van <b>elk</b> onderdeel: na elke kilometer en na elk station. In totaal 16 keer.</li>
+        <li>Na de 16e lap stopt de tijd vanzelf. Druk op START en kies <b>Opslaan</b>. De activiteit staat daarna gewoon in Garmin Connect.</li>
+      </ol>
+
+      <div class="keys">
+        <div><b>Bovenste knop</b><span>Start · pauze · hervatten</span></div>
+        <div><b>Onderste knop</b><span>Lap → volgend onderdeel</span></div>
+        <div><b>Scherm aanraken</b><span>Doet niets (zweet-proof)</span></div>
+      </div>
+
+      <h4>Wat zie je op het scherm?</h4>
+      <ul class="steps">
+        <li>Bovenaan het onderdeel, bijvoorbeeld <i>4/16 Sled Push</i>.</li>
+        <li>Groot je totale tijd, daaronder je tijd in dit onderdeel en je doel.</li>
+        <li>Tijdens het lopen je snelheid in <b>km/u</b>, op stations je <b>hartslag</b>.</li>
+        <li>Onderaan <b class="green">VOOR</b> of <b class="red">ACHTER</b> op je schema.</li>
+      </ul>
+
+      <h4>Tips</h4>
+      <ul class="steps">
+        <li><b>Roxzone:</b> druk elke keer op hetzelfde moment op LAP, bijvoorbeeld bij de mat aan het begin van het station. Dan kloppen je tussentijden het best.</li>
+        <li><b>km/u binnen:</b> zonder GPS schat je horloge je snelheid met de sensor in je pols. Dat is een benadering, je tijden en je schema zijn wel exact. Na een paar keer loopband lopen wordt de schatting beter.</li>
+        <li>Pauzeren met de bovenste knop. Met de onderste knop in pauze krijg je het menu: <i>Hervatten, Opslaan, Verwijderen</i>.</li>
+      </ul>
+    </section>
+
+    <section id="problemen" class="card step">
+      <h3>Problemen?</h3>
+      <details>
+        <summary>Ik zie geen koppelcode, alleen "Offline"</summary>
+        <p>Het horloge kan de website niet bereiken. Controleer of je telefoon in de buurt is, Bluetooth aan staat en de Garmin Connect-app verbonden is met je horloge. Sluit Hyrox Pacer en open hem opnieuw.</p>
+      </details>
+      <details>
+        <summary>De code werkt niet</summary>
+        <p>De code is 15 minuten geldig. Sluit de app op je horloge, open hem opnieuw en gebruik de nieuwe code.</p>
+      </details>
+      <details>
+        <summary>Mijn horloge toont een oud schema</summary>
+        <p>Controleer of het goede schema op <b>actief</b> staat. Het horloge haalt het schema op bij het openen van de app, dus sluit hem en open hem opnieuw met je telefoon in de buurt.</p>
+      </details>
+      <details>
+        <summary>Ik zie de app niet op mijn horloge</summary>
+        <p>Controleer of <code>hyrox-pacer.prg</code> echt in <b>GARMIN → Apps</b> staat (niet in een andere map) en of je horloge een Venu 3 of 3S is. Herstart het horloge eventueel.</p>
+      </details>
+      <details>
+        <summary>Een vriend wil hem ook</summary>
+        <p>Stuur hem de link naar deze pagina. Iedereen downloadt dezelfde app, maakt een eigen account en koppelt een eigen horloge.</p>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    // Tabs Windows / Mac
+    const tabs = document.querySelectorAll("[data-os]");
+    const isMac = /Mac/i.test(navigator.platform || navigator.userAgent);
+    function pick(os) {
+      tabs.forEach((t) => t.classList.toggle("active", t.dataset.os === os));
+      document.querySelectorAll("[data-os-panel]").forEach((p) => (p.hidden = p.dataset.osPanel !== os));
+    }
+    tabs.forEach((t) => t.addEventListener("click", () => pick(t.dataset.os)));
+    if (isMac) pick("mac");
+
+    // Staat de download er al?
+    fetch("/hyrox-pacer.prg", { method: "HEAD" }).then((r) => {
+      const ok = r.ok && !(r.headers.get("content-type") || "").includes("text/html");
+      if (!ok) {
+        document.getElementById("dl").hidden = true;
+        document.getElementById("dl-missing").hidden = false;
+      }
+    }).catch(() => {});
+  </script>
+</body>
+</html>
