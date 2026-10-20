@@ -18,7 +18,7 @@
     </header>
 
     <h2 class="guide-title">Zo zet je Hyrox Pacer op je Garmin</h2>
-    <p class="hint">Werkt op de <b>Venu 3</b> en <b>Venu 3S</b>. Je doet dit één keer; daarna laadt het horloge je schema vanzelf.</p>
+    <p class="hint">Werkt op de <b>Venu 2, 2S, 2 Plus, 3, 3S en Venu 4</b>. Je doet dit één keer; daarna laadt het horloge je schema vanzelf.</p>
 
     <nav class="toc card">
       <a href="#download">1. Download</a>
@@ -32,9 +32,20 @@
     <section id="download" class="card step">
       <span class="step-no">1</span>
       <h3>Download de app</h3>
-      <p>Download het app-bestand naar je computer. Het heet <code>hyrox-pacer.prg</code>.</p>
-      <a class="btn primary" id="dl" href="/hyrox-pacer.prg" download>Download hyrox-pacer.prg</a>
-      <p class="note" id="dl-missing" hidden>De download staat er nog niet. Vraag het even aan degene die je deze site heeft gestuurd.</p>
+      <p>Kies je horloge en download het app-bestand naar je computer. Elk model heeft een eigen bestand.</p>
+      <label>Mijn horloge
+        <select id="model">
+          <option value="venu2">Venu 2</option>
+          <option value="venu2s">Venu 2S</option>
+          <option value="venu2plus">Venu 2 Plus</option>
+          <option value="venu3" selected>Venu 3</option>
+          <option value="venu3s">Venu 3S</option>
+          <option value="venu441mm">Venu 4 (41 mm)</option>
+          <option value="venu445mm">Venu 4 (45 mm)</option>
+        </select>
+      </label>
+      <a class="btn primary dl-btn" id="dl" href="/downloads/hyrox-pacer-venu3.prg" download>Download</a>
+      <p class="note" id="dl-missing" hidden>Voor dit model staat de download er nog niet. Vraag het even aan degene die je deze site heeft gestuurd.</p>
     </section>
 
     <section id="installeren" class="card step">
@@ -46,9 +57,9 @@
       </div>
       <ol class="steps" data-os-panel="win">
         <li>Sluit je horloge met de <b>USB-kabel</b> aan op je computer.</li>
-        <li>Open <b>Verkenner</b>. Je horloge staat links onder <i>Deze pc</i> als <b>Venu 3</b>.</li>
+        <li>Open <b>Verkenner</b>. Je horloge staat links onder <i>Deze pc</i> als je <b>Venu</b>.</li>
         <li>Open <b>Internal Storage → GARMIN → Apps</b>.</li>
-        <li>Sleep <code>hyrox-pacer.prg</code> in de map <b>Apps</b>.</li>
+        <li>Sleep het gedownloade <code>.prg</code>-bestand in de map <b>Apps</b>.</li>
         <li>Koppel het horloge los. Na een paar seconden staat de app erop.</li>
       </ol>
       <ol class="steps" data-os-panel="mac" hidden>
@@ -56,7 +67,7 @@
         <li>Sluit <b>Garmin Express</b> af als die open staat (anders blokkeert hij de verbinding).</li>
         <li>Sluit je horloge met de <b>USB-kabel</b> aan en open OpenMTP.</li>
         <li>Ga rechts (het horloge) naar <b>GARMIN → Apps</b>.</li>
-        <li>Sleep <code>hyrox-pacer.prg</code> van links (je Mac) naar de map <b>Apps</b>.</li>
+        <li>Sleep het gedownloade <code>.prg</code>-bestand van links (je Mac) naar de map <b>Apps</b>.</li>
         <li>Koppel het horloge los. Na een paar seconden staat de app erop.</li>
       </ol>
     </section>
@@ -132,7 +143,7 @@
       </details>
       <details>
         <summary>Ik zie de app niet op mijn horloge</summary>
-        <p>Controleer of <code>hyrox-pacer.prg</code> echt in <b>GARMIN → Apps</b> staat (niet in een andere map) en of je horloge een Venu 3 of 3S is. Herstart het horloge eventueel.</p>
+        <p>Controleer of het <code>.prg</code>-bestand echt in <b>GARMIN → Apps</b> staat (niet in een andere map) en of je het bestand voor <b>jouw model</b> hebt gedownload. Herstart het horloge eventueel.</p>
       </details>
       <details>
         <summary>Een vriend wil hem ook</summary>
@@ -152,14 +163,23 @@
     tabs.forEach((t) => t.addEventListener("click", () => pick(t.dataset.os)));
     if (isMac) pick("mac");
 
-    // Staat de download er al?
-    fetch("/hyrox-pacer.prg", { method: "HEAD" }).then((r) => {
-      const ok = r.ok && !(r.headers.get("content-type") || "").includes("text/html");
-      if (!ok) {
-        document.getElementById("dl").hidden = true;
-        document.getElementById("dl-missing").hidden = false;
-      }
-    }).catch(() => {});
+    // Download per model
+    const model = document.getElementById("model");
+    const dl = document.getElementById("dl");
+    const missing = document.getElementById("dl-missing");
+    function updateDownload() {
+      const file = `hyrox-pacer-${model.value}.prg`;
+      dl.href = `/downloads/${file}`;
+      dl.setAttribute("download", file);
+      dl.textContent = `Download voor ${model.selectedOptions[0].text}`;
+      fetch(dl.href, { method: "HEAD" }).then((r) => {
+        const ok = r.ok && !(r.headers.get("content-type") || "").includes("text/html");
+        dl.hidden = !ok;
+        missing.hidden = ok;
+      }).catch(() => {});
+    }
+    model.addEventListener("change", updateDownload);
+    updateDownload();
   </script>
 </body>
 </html>

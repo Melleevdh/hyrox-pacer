@@ -1,4 +1,4 @@
-# Hyrox Pacer – Garmin-app (Venu 3 / Venu 3S)
+# Hyrox Pacer – Garmin-app (Venu 2, 2S, 2 Plus, 3, 3S, 4)
 
 Een eigen activiteit-app. Hij haalt je actieve schema op van de website,
 neemt je Hyrox op als activiteit (met 16 laps) en laat tijdens de race zien:
@@ -26,9 +26,9 @@ Na de 16e lap stopt de tijd automatisch.
 
 ## Bouwen en op je horloge zetten
 1. Open in VS Code de map `garmin`.
-2. Testen: `Ctrl/Cmd+Shift+P` → **Monkey C: Run** → **venu3**.
+2. Testen: `Ctrl/Cmd+Shift+P` → **Monkey C: Run** → kies je model (bijv. **venu3**).
    (In de simulator gebruik je *Settings → Connection Type* om de telefoonverbinding na te bootsen.)
-3. Bouwen: `Ctrl/Cmd+Shift+P` → **Monkey C: Build for Device** → **venu3**. Je krijgt een `.prg`-bestand.
+3. Bouwen: `Ctrl/Cmd+Shift+P` → **Monkey C: Build for Device** → kies je model. Je krijgt een `.prg`-bestand dat alleen op dat model werkt.
 4. Sluit je horloge met USB aan en kopieer het `.prg`-bestand naar `GARMIN/APPS`.
    Op een Mac heb je daarvoor **OpenMTP** nodig (gratis).
 

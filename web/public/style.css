@@ -203,3 +203,9 @@ code { background: var(--card-2); border: 1px solid var(--line); border-radius: 
 .step details { border-top: 1px solid var(--line); padding: 4px 0; }
 .step details summary { color: var(--text); padding: 10px 0; }
 .step details p { color: var(--muted); }
+select {
+  display: block; width: 100%; margin: 6px 0 14px;
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); font: 16px var(--body); padding: 12px 14px;
+}
+.dl-btn { display: inline-block; text-decoration: none; }
