@@ -7,10 +7,16 @@ import crypto from "node:crypto";
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
+// Alle sleutels krijgen dit voorvoegsel, zodat de database veilig gedeeld kan worden
+// met andere projecten.
+const KEY_PREFIX = "hp:";
+
 export async function redis(...cmd) {
   if (!REDIS_URL || !REDIS_TOKEN) {
     throw new HttpError(503, "Database is nog niet gekoppeld.");
   }
+  // Alle gebruikte commando's (GET, SET, DEL, INCR, EXPIRE) hebben de sleutel als eerste argument.
+  cmd[1] = KEY_PREFIX + cmd[1];
   const r = await fetch(REDIS_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${REDIS_TOKEN}`, "Content-Type": "application/json" },
