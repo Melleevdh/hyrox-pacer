@@ -26,7 +26,8 @@ class RaceView extends WatchUi.View {
 
     const SEGMENTS = 16;
     const RUNS = 8;
-    const POLL_SECONDS = 5;
+    const POLL_SECONDS = 5;        // koppelcode: zo vaak kijken of je gekoppeld bent
+    const REFRESH_SECONDS = 15;    // voor de start: zo vaak het schema verversen
 
     var state = S_LOADING;
 
@@ -94,6 +95,11 @@ class RaceView extends WatchUi.View {
         if (state == S_PAIR && _tick % POLL_SECONDS == 0) {
             fetchPlan();
         }
+        // Voor de start blijven verversen: pakt wijzigingen op de website op
+        // en probeert opnieuw als de telefoon eerst niet bereikbaar was.
+        if (state == S_READY && _tick % REFRESH_SECONDS == 0) {
+            fetchPlan();
+        }
         if (state == S_RUN) {
             // Snelheid afvlakken, zodat het tempo niet elke seconde verspringt.
             var info = Activity.getActivityInfo();
@@ -145,7 +151,7 @@ class RaceView extends WatchUi.View {
 
     function onReceive(responseCode as Number, data as Dictionary or String or Null) as Void {
         _requesting = false;
-        if (state != S_LOADING && state != S_PAIR) {
+        if (state != S_LOADING && state != S_PAIR && state != S_READY) {
             return; // race is al gestart: niets meer veranderen
         }
         if (responseCode == 200 && data instanceof Dictionary) {
@@ -153,7 +159,8 @@ class RaceView extends WatchUi.View {
                 var plan = data["plan"];
                 if (applyPlan(plan)) {
                     Application.Storage.setValue("plan", plan);
-                    _status = "Schema bijgewerkt";
+                    var ct = System.getClockTime();
+                    _status = "Bijgewerkt " + ct.hour.toString() + ":" + ct.min.format("%02d");
                 } else {
                     _status = "Nog geen actief schema";
                 }
@@ -164,7 +171,7 @@ class RaceView extends WatchUi.View {
                 state = S_PAIR;
             }
         } else if (state == S_LOADING) {
-            // Geen telefoon/internet: verder met het opgeslagen schema.
+            // Geen telefoon/internet: verder met het opgeslagen schema (en later opnieuw proberen).
             _status = "Offline: opgeslagen schema";
             state = S_READY;
         }
@@ -180,16 +187,16 @@ class RaceView extends WatchUi.View {
         if (!(splits instanceof Array) || splits.size() != SEGMENTS) {
             return false;
         }
-        var rox = plan["roxzone"];
-        if (!(rox instanceof Number) || rox < 0 || rox > 3600) {
+        var rox = toInt(plan["roxzone"]);
+        if (rox == null || rox < 0 || rox > 3600) {
             rox = 0;
         }
         var t = new [SEGMENTS];
         var c = new [SEGMENTS];
         var sum = 0;
         for (var i = 0; i < SEGMENTS; i++) {
-            var v = splits[i];
-            if (!(v instanceof Number) || v <= 0) {
+            var v = toInt(splits[i]);
+            if (v == null || v <= 0) {
                 return false;
             }
             // De Roxzone telt mee bij de runs: je drukt LAP bij begin en eind van elk station.
@@ -210,6 +217,17 @@ class RaceView extends WatchUi.View {
         var name = plan["name"];
         _planName = (name instanceof String) ? name : "Schema";
         return true;
+    }
+
+    // Getal uit JSON (Number, Long, Float of Double) -> Number; anders null.
+    function toInt(v) {
+        if (v instanceof Number) {
+            return v;
+        }
+        if (v instanceof Long || v instanceof Float || v instanceof Double) {
+            return v.toNumber();
+        }
+        return null;
     }
 
     // ---------- Race ----------
