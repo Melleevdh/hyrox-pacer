@@ -1,10 +1,14 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Knoppen Venu 3:
+// Knoppen Venu:
 //   bovenste knop (START/STOP) = KEY_ENTER
 //   onderste knop (TERUG/LAP)  = KEY_ESC
 // Aanrakingen en vegen worden genegeerd, zodat zweet of een tik niets doet.
+//
+// Tijdens de race:
+//   START -> activiteit stoppen (timer staat stil) + menu: Hervatten / Opslaan / Verwijderen
+//   LAP   -> volgend onderdeel
 class RaceDelegate extends WatchUi.InputDelegate {
 
     private var _view;
@@ -22,7 +26,8 @@ class RaceDelegate extends WatchUi.InputDelegate {
             if (s == S_READY) {
                 _view.start();
             } else if (s == S_RUN) {
-                _view.pause();
+                _view.stop();
+                openMenu(true);
             } else if (s == S_PAUSE) {
                 _view.resume();
             } else if (s == S_DONE) {
@@ -58,7 +63,7 @@ class RaceDelegate extends WatchUi.InputDelegate {
     }
 
     function openMenu(withResume) {
-        var menu = new WatchUi.Menu2({:title => "Activiteit"});
+        var menu = new WatchUi.Menu2({:title => "Gestopt"});
         if (withResume) {
             menu.addItem(new WatchUi.MenuItem("Hervatten", null, :resume, null));
         }
@@ -85,11 +90,31 @@ class EndMenuDelegate extends WatchUi.Menu2InputDelegate {
         } else if (id == :save) {
             _view.save();
         } else if (id == :discard) {
-            _view.discard();
+            // Eerst bevestigen, zodat je niet per ongeluk je race weggooit.
+            WatchUi.pushView(new WatchUi.Confirmation("Activiteit verwijderen?"),
+                             new DiscardConfirmDelegate(_view), WatchUi.SLIDE_UP);
         }
     }
 
+    // Terug uit het menu: activiteit blijft gestopt. START hervat, LAP opent het menu weer.
     function onBack() {
         WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+}
+
+class DiscardConfirmDelegate extends WatchUi.ConfirmationDelegate {
+
+    private var _view;
+
+    function initialize(view) {
+        ConfirmationDelegate.initialize();
+        _view = view;
+    }
+
+    function onResponse(response) {
+        if (response == WatchUi.CONFIRM_YES) {
+            _view.discard();
+        }
+        return true;
     }
 }

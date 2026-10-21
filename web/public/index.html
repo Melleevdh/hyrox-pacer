@@ -64,9 +64,12 @@
     <section>
       <div class="section-head">
         <h2>Schema's</h2>
-        <button class="btn primary" id="new-plan">+ Nieuw schema</button>
+        <div class="head-actions">
+          <button class="btn ai" id="ai-plan">✨ AI-schema</button>
+          <button class="btn primary" id="new-plan">+ Nieuw</button>
+        </div>
       </div>
-      <p class="hint">Het <b>actieve</b> schema wordt op je horloge geladen als je de app opent.</p>
+      <p class="hint">Het <b>actieve</b> schema wordt op je horloge geladen als je de app opent. Wijzig je iets, open de app op je horloge dan opnieuw.</p>
       <div id="plan-list" class="plans"></div>
     </section>
   </template>
@@ -78,6 +81,11 @@
       <span></span>
     </header>
     <form id="plan-form" class="editor">
+      <div class="card ai-note" id="ai-note" hidden>
+        <span class="pill ai-pill">✨ Voorstel van AI</span>
+        <p></p>
+        <small>Controleer de tijden en klik op <b>Opslaan</b> om het schema te bewaren.</small>
+      </div>
       <label class="card">Naam
         <input name="name" maxlength="60" placeholder="Bijv. Hyrox Amsterdam – sub 1:20" required>
       </label>
@@ -95,6 +103,12 @@
       <div class="card splits">
         <div class="splits-head"><span>Onderdeel</span><span>Doel</span><span>Totaal</span></div>
         <ol id="split-rows"></ol>
+        <div class="rox-row">
+          <span class="seg"><b>R</b>Roxzone <small>totaal</small></span>
+          <input id="roxzone" inputmode="numeric" aria-label="Roxzone totaal">
+          <span class="cum"></span>
+        </div>
+        <p class="hint rox-hint" id="rox-hint"></p>
       </div>
 
       <p class="error" hidden></p>
@@ -102,6 +116,46 @@
         <div class="total"><small>Eindtijd</small><strong id="total">0:00</strong></div>
         <button class="btn primary" type="submit">Opslaan</button>
       </div>
+    </form>
+  </template>
+
+  <template id="tpl-ai">
+    <header class="top">
+      <button class="link" id="back">← Terug</button>
+      <h2 class="editor-title">AI-schema</h2>
+      <span></span>
+    </header>
+    <p class="hint">Vertel iets over jezelf en Claude Haiku stelt een schema voor met tijden per onderdeel en de Roxzone. Je kunt het daarna nog aanpassen.</p>
+    <form id="ai-form" class="card form">
+      <label>Divisie
+        <select name="division">
+          <option value="open-man">Open – man</option>
+          <option value="open-vrouw">Open – vrouw</option>
+          <option value="pro-man">Pro – man</option>
+          <option value="pro-vrouw">Pro – vrouw</option>
+          <option value="doubles">Doubles</option>
+        </select>
+      </label>
+      <label>Ervaring
+        <select name="level">
+          <option value="eerste">Eerste Hyrox</option>
+          <option value="some">1 tot 3 Hyroxen gedaan</option>
+          <option value="ervaren">Ervaren (meer dan 3)</option>
+        </select>
+      </label>
+      <div class="row two">
+        <label>Doeltijd <small>(optioneel)</small>
+          <input name="goal" placeholder="1:20:00" inputmode="numeric">
+        </label>
+        <label>Je 5 km-tijd <small>(optioneel)</small>
+          <input name="fiveK" placeholder="24:00" inputmode="numeric">
+        </label>
+      </div>
+      <label>Sterke en zwakke punten <small>(optioneel)</small>
+        <textarea name="notes" rows="3" maxlength="400" placeholder="Bijv. sterk op de sled, wall balls gaan traag, lopen gaat goed."></textarea>
+      </label>
+      <p class="error" hidden></p>
+      <button class="btn primary" type="submit">✨ Maak mijn schema</button>
     </form>
   </template>
 

@@ -166,5 +166,18 @@ export function validPlan(p) {
   if (splits.some((s) => !Number.isFinite(s) || s < 1 || s > 36000)) {
     throw new HttpError(400, "Elke tijd moet tussen 0:01 en 10:00:00 liggen.");
   }
-  return { name, splits };
+  const roxzone = Math.round(Number(p.roxzone || 0));
+  if (!Number.isFinite(roxzone) || roxzone < 0 || roxzone > 3600) {
+    throw new HttpError(400, "Roxzone-tijd moet tussen 0:00 en 60:00 liggen.");
+  }
+  return { name, splits, roxzone };
+}
+
+// Eenvoudige daglimiet per gebruiker (bijv. voor AI-aanvragen).
+export async function dailyLimit(name, user, max) {
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `rl:${name}:${user}:${day}`;
+  const n = await redis("INCR", key);
+  if (n === 1) await redis("EXPIRE", key, 90000);
+  if (n > max) throw new HttpError(429, `Je hebt het maximum van ${max} per dag bereikt. Probeer het morgen weer.`);
 }

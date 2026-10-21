@@ -3,15 +3,19 @@
 Een eigen activiteit-app. Hij haalt je actieve schema op van de website,
 neemt je Hyrox op als activiteit (met 16 laps) en laat tijdens de race zien:
 
-- het onderdeel (`4/16 Sled Push`) met tijd in het onderdeel en de doeltijd
-- je totale tijd
-- **km/u** tijdens het lopen, **hartslag** op de stations
-- **VOOR / ACHTER** op schema (groen / rood)
+- je totale tijd en hoeveel je voor (groen, `-0:41`) of achter (rood, `+0:23`) op schema ligt
+- het onderdeel (`4/16 Sled Push`), je tijd in het onderdeel en de doeltijd
+- bij de runs: gelopen meters en je tempo in **min/km**
+- wat er hierna komt
+- je **hartslag in de kleur van je zone** (Z1 grijs, Z2 blauw, Z3 groen, Z4 oranje, Z5 rood)
+
+De Roxzone-tijd uit je schema wordt verdeeld over de 8 runs. Druk op LAP zodra je aan een station
+begint en zodra je het station af hebt.
 
 ## Knoppen
 | Knop | Voor de start | Tijdens de race | Gepauzeerd | Na finish |
 |---|---|---|---|---|
-| Boven (START) | Start | Pauze | Hervatten | Opslaan-menu |
+| Boven (START) | Start | **Stoppen** + menu (hervatten/opslaan/verwijderen) | Hervatten | Opslaan-menu |
 | Onder (TERUG/LAP) | App sluiten | **Lap** (volgend onderdeel) | Menu (hervatten/opslaan/verwijderen) | Opslaan-menu |
 
 Aanraken en vegen doen niets, zodat zweet of een tik je race niet verstoort.

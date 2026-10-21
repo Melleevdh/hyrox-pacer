@@ -1,6 +1,6 @@
 // Endpoint voor het horloge: GET /api/watch?id=<device-id>
 // - Nog niet gekoppeld -> { paired: false, code: "123456" }
-// - Gekoppeld          -> { paired: true, user, plan: { name, splits: [16 x seconden] } | null }
+// - Gekoppeld          -> { paired: true, user, plan: { name, splits: [16 x seconden], roxzone: seconden } | null }
 import crypto from "node:crypto";
 import { handler, redis, HttpError, getPlans } from "./_lib.js";
 
@@ -19,7 +19,7 @@ export default handler({
       return {
         paired: true,
         user,
-        plan: active ? { name: active.name, splits: active.splits } : null,
+        plan: active ? { name: active.name, splits: active.splits, roxzone: active.roxzone || 0 } : null,
       };
     }
 

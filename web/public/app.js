@@ -3,6 +3,16 @@ const SEGMENTS = [
   "Run 5", "Rowing", "Run 6", "Farmers Carry", "Run 7", "Sandbag Lunges", "Run 8", "Wall Balls",
 ];
 const DEFAULT_SPLITS = [300, 270, 300, 240, 330, 300, 330, 300, 330, 285, 330, 150, 330, 300, 345, 360];
+const DEFAULT_ROXZONE = 360;
+
+// Roxzone wordt verdeeld over de 8 runs (je drukt LAP bij begin en eind van elk station).
+export function roxShare(roxzone, runIndex) {
+  return Math.floor(roxzone / 8) + (runIndex < roxzone % 8 ? 1 : 0);
+}
+
+function planTotal(p) {
+  return p.splits.reduce((a, b) => a + b, 0) + (p.roxzone || 0);
+}
 
 const app = document.getElementById("app");
 const state = { user: null, plans: [], devices: [] };
@@ -162,7 +172,8 @@ function renderHome() {
     const sorted = [...state.plans].sort((a, b) => (b.active - a.active) || (b.updated - a.updated));
     plansEl.innerHTML = sorted
       .map((p) => {
-        const total = p.splits.reduce((a, b) => a + b, 0);
+        const rox = p.roxzone || 0;
+        const total = planTotal(p);
         const run = p.splits.filter((_, i) => i % 2 === 0).reduce((a, b) => a + b, 0);
         return `
         <article class="card plan ${p.active ? "active" : ""}">
@@ -170,7 +181,7 @@ function renderHome() {
             <div>
               ${p.active ? `<span class="pill ok">Actief op horloge</span>` : ""}
               <h3>${esc(p.name)}</h3>
-              <p class="meta">Lopen ${fmt(run)} · Stations ${fmt(total - run)}</p>
+              <p class="meta">Lopen ${fmt(run)} · Stations ${fmt(total - run - rox)} · Roxzone ${fmt(rox)}</p>
             </div>
             <strong class="plan-total">${fmt(total)}</strong>
           </div>
@@ -186,13 +197,14 @@ function renderHome() {
   }
 
   app.querySelector("#new-plan").addEventListener("click", () => renderEditor(null));
+  app.querySelector("#ai-plan").addEventListener("click", renderAI);
   plansEl.querySelectorAll("[data-edit]").forEach((b) =>
     b.addEventListener("click", () => renderEditor(state.plans.find((p) => p.id === b.dataset.edit)))
   );
   plansEl.querySelectorAll("[data-copy]").forEach((b) =>
     b.addEventListener("click", () => {
       const src = state.plans.find((p) => p.id === b.dataset.copy);
-      renderEditor({ name: `${src.name} (kopie)`, splits: [...src.splits] });
+      renderEditor({ name: `${src.name} (kopie)`, splits: [...src.splits], roxzone: src.roxzone || 0 });
     })
   );
   plansEl.querySelectorAll("[data-activate]").forEach((b) =>
@@ -212,15 +224,25 @@ function renderHome() {
 
 // ---------- Schema bewerken ----------
 
-function renderEditor(plan) {
+function renderEditor(plan, aiUitleg) {
   show("tpl-editor");
   const form = app.querySelector("#plan-form");
   const err = form.querySelector(".error");
   const rows = app.querySelector("#split-rows");
   const totalEl = app.querySelector("#total");
   const splits = plan ? [...plan.splits] : [...DEFAULT_SPLITS];
+  let roxzone = plan ? plan.roxzone || 0 : DEFAULT_ROXZONE;
+  const roxInput = app.querySelector("#roxzone");
+  const roxHint = app.querySelector("#rox-hint");
+  roxInput.value = fmt(roxzone);
 
-  app.querySelector(".editor-title").textContent = plan?.id ? "Schema bewerken" : "Nieuw schema";
+  if (aiUitleg !== undefined) {
+    const note = app.querySelector("#ai-note");
+    note.hidden = false;
+    note.querySelector("p").textContent = aiUitleg;
+  }
+
+  app.querySelector(".editor-title").textContent = plan?.id ? "Schema bewerken" : aiUitleg !== undefined ? "AI-schema" : "Nieuw schema";
   const nameInput = form.querySelector("input[name=name]");
   nameInput.value = plan?.name || "";
   app.querySelector("#back").addEventListener("click", renderHome);
@@ -235,21 +257,32 @@ function renderEditor(plan) {
   const inputs = [...rows.querySelectorAll("input")];
 
   function recalc() {
-    let sum = 0;
     let valid = true;
+    const rv = roxInput.value.trim() === "" ? 0 : parseTime(roxInput.value);
+    const roxBad = rv == null || rv > 3600;
+    roxInput.classList.toggle("bad", roxBad);
+    if (roxBad) valid = false;
+    else roxzone = rv;
+
+    let sum = 0;
     inputs.forEach((inp, i) => {
       const v = parseTime(inp.value);
       inp.classList.toggle("bad", v == null || v < 1);
       if (v == null || v < 1) valid = false;
       else splits[i] = v;
-      sum += splits[i];
+      sum += splits[i] + (i % 2 === 0 ? roxShare(roxzone, i / 2) : 0);
       rows.querySelector(`[data-cum="${i}"]`).textContent = fmt(sum);
     });
     totalEl.textContent = fmt(sum);
+
+    const share = roxShare(roxzone, 0);
+    roxHint.textContent = roxzone
+      ? `De Roxzone telt mee bij je runs: +${fmt(share)} per run. Op je horloge is het doel voor Run 1 dus ${fmt(splits[0])} + ${fmt(share)} = ${fmt(splits[0] + share)}. De kolom Totaal en je eindtijd zijn inclusief Roxzone.`
+      : "Vul je verwachte totale Roxzone-tijd in (meestal 5 tot 10 minuten). Die telt mee bij je runs en je eindtijd.";
     return valid;
   }
 
-  inputs.forEach((inp) => {
+  [...inputs, roxInput].forEach((inp) => {
     inp.addEventListener("input", recalc);
     inp.addEventListener("blur", () => {
       const v = parseTime(inp.value);
@@ -277,13 +310,42 @@ function renderEditor(plan) {
     try {
       const res = await api("/api/plans", {
         method: "POST",
-        body: { id: plan?.id, name: nameInput.value, splits },
+        body: { id: plan?.id, name: nameInput.value, splits, roxzone },
       });
       state.plans = res.plans;
       renderHome();
     } catch (ex) {
       showError(err, ex.message);
       btn.disabled = false;
+    }
+  });
+}
+
+// ---------- AI-schema ----------
+
+function renderAI() {
+  show("tpl-ai");
+  app.querySelector("#back").addEventListener("click", renderHome);
+  const form = app.querySelector("#ai-form");
+  const err = form.querySelector(".error");
+  const btn = form.querySelector("button[type=submit]");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showError(err, "");
+    const fd = new FormData(form);
+    if (!String(fd.get("goal")).trim() && !String(fd.get("fiveK")).trim()) {
+      return showError(err, "Vul een doeltijd of je 5 km-tijd in.");
+    }
+    btn.disabled = true;
+    btn.textContent = "Haiku denkt na…";
+    try {
+      const res = await api("/api/generate", { method: "POST", body: Object.fromEntries(fd) });
+      renderEditor(res.plan, res.uitleg);
+    } catch (ex) {
+      showError(err, ex.message);
+      btn.disabled = false;
+      btn.textContent = "✨ Maak mijn schema";
     }
   });
 }
