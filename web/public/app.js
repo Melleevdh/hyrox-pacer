@@ -65,6 +65,133 @@ function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+// ---------- Tijdkiezer (draaiwiel, werkt op telefoon en computer) ----------
+
+const ITEM_H = 44; // hoogte van één regel in het wiel (px), gelijk aan CSS --wheel-item
+
+// Kolomsets
+const HMS = (maxH = 4) => [
+  { label: "uur", min: 0, max: maxH },
+  { label: "min", min: 0, max: 59 },
+  { label: "sec", min: 0, max: 59 },
+];
+const MS = (minM = 0, maxM = 59) => [
+  { label: "min", min: minM, max: maxM },
+  { label: "sec", min: 0, max: 59 },
+];
+
+function splitSeconds(total, cols) {
+  if (cols.length === 3) return [Math.floor(total / 3600), Math.floor((total % 3600) / 60), total % 60];
+  return [Math.floor(total / 60), total % 60];
+}
+
+function joinSeconds(parts) {
+  return parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : parts[0] * 60 + parts[1];
+}
+
+// Maakt van een <input> een tikveld dat het draaiwiel opent.
+// opts: { title, cols, optional, fallback (seconden als het veld leeg is) }
+function timeField(input, opts) {
+  input.readOnly = true;
+  input.setAttribute("inputmode", "none");
+  input.classList.add("time-field");
+  input.addEventListener("click", () => openWheel(input, opts));
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openWheel(input, opts); }
+  });
+}
+
+function openWheel(input, { title, cols, optional = false, fallback = 0 }) {
+  const current = parseTime(input.value);
+  const start = splitSeconds(current ?? fallback, cols).map((v, i) => Math.min(cols[i].max, Math.max(cols[i].min, v)));
+
+  const sheet = document.createElement("div");
+  sheet.className = "wheel-backdrop";
+  sheet.innerHTML = `
+    <div class="wheel-sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+      <div class="wheel-top">
+        <button type="button" class="link" data-act="cancel">Annuleren</button>
+        <strong>${esc(title)}</strong>
+        <button type="button" class="link accent" data-act="done">Klaar</button>
+      </div>
+      <div class="wheel-labels">${cols.map((c) => `<span>${c.label}</span>`).join("")}</div>
+      <div class="wheel-cols">
+        <div class="wheel-band" aria-hidden="true"></div>
+        ${cols.map((c, ci) => `
+          <div class="wheel" data-col="${ci}" tabindex="0" aria-label="${c.label}">
+            ${Array.from({ length: c.max - c.min + 1 }, (_, k) => {
+              const v = c.min + k;
+              return `<div class="wheel-item" data-v="${v}">${ci === 0 && cols.length === 3 ? v : String(v).padStart(2, "0")}</div>`;
+            }).join("")}
+          </div>`).join("")}
+      </div>
+      ${optional ? `<button type="button" class="btn wheel-clear" data-act="clear">Leegmaken</button>` : ""}
+    </div>`;
+  document.body.appendChild(sheet);
+  document.body.classList.add("no-scroll");
+
+  const wheels = [...sheet.querySelectorAll(".wheel")];
+  const value = (ci) => {
+    const c = cols[ci];
+    const idx = Math.round(wheels[ci].scrollTop / ITEM_H);
+    return Math.min(c.max, Math.max(c.min, c.min + idx));
+  };
+  const mark = (ci) => {
+    const v = value(ci);
+    wheels[ci].querySelectorAll(".wheel-item").forEach((it) => it.classList.toggle("sel", Number(it.dataset.v) === v));
+  };
+
+  wheels.forEach((w, ci) => {
+    w.scrollTop = (start[ci] - cols[ci].min) * ITEM_H;
+    mark(ci);
+    w.addEventListener("scroll", () => mark(ci), { passive: true });
+    // Tik op een getal = daarheen draaien
+    w.addEventListener("click", (e) => {
+      const it = e.target.closest(".wheel-item");
+      if (it) w.scrollTo({ top: (Number(it.dataset.v) - cols[ci].min) * ITEM_H, behavior: "smooth" });
+    });
+    // Pijltjestoetsen op de computer
+    w.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      e.preventDefault();
+      const next = value(ci) + (e.key === "ArrowDown" ? 1 : -1);
+      if (next >= cols[ci].min && next <= cols[ci].max) w.scrollTo({ top: (next - cols[ci].min) * ITEM_H, behavior: "smooth" });
+    });
+  });
+  // Schermen die net geopend zijn zetten scrollTop soms pas na de opmaak goed.
+  requestAnimationFrame(() => wheels.forEach((w, ci) => { w.scrollTop = (start[ci] - cols[ci].min) * ITEM_H; mark(ci); }));
+
+  function close() {
+    sheet.classList.add("closing");
+    document.body.classList.remove("no-scroll");
+    setTimeout(() => sheet.remove(), 180);
+    input.focus({ preventScroll: true });
+  }
+  function commit(str) {
+    input.value = str;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    close();
+  }
+
+  sheet.addEventListener("click", (e) => {
+    const act = e.target.closest("[data-act]")?.dataset.act;
+    if (e.target === sheet || act === "cancel") return close();
+    if (act === "clear") return commit("");
+    if (act === "done") return commit(fmtCols(joinSeconds(wheels.map((_, ci) => value(ci))), cols));
+  });
+  sheet.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  wheels[0].focus({ preventScroll: true });
+}
+
+// Tijd tonen in het formaat van de kiezer (h:mm:ss of m:ss).
+function fmtCols(sec, cols) {
+  if (cols.length === 3) {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60;
+    return `${h}:${String(m).padStart(2, "0")}:${String(s2).padStart(2, "0")}`;
+  }
+  return fmt(sec);
+}
+
 // ---------- Inloggen ----------
 
 function renderAuth() {
@@ -250,7 +377,7 @@ function renderEditor(plan, aiUitleg) {
   rows.innerHTML = SEGMENTS.map((name, i) => `
     <li class="${i % 2 === 0 ? "run" : "station"}">
       <span class="seg"><b>${i + 1}</b>${name}</span>
-      <input data-i="${i}" value="${fmt(splits[i])}" inputmode="numeric" aria-label="Doeltijd ${name}">
+      <input data-i="${i}" value="${fmt(splits[i])}" aria-label="Doeltijd ${name}">
       <span class="cum" data-cum="${i}"></span>
     </li>`).join("");
 
@@ -282,14 +409,10 @@ function renderEditor(plan, aiUitleg) {
     return valid;
   }
 
-  [...inputs, roxInput].forEach((inp) => {
-    inp.addEventListener("input", recalc);
-    inp.addEventListener("blur", () => {
-      const v = parseTime(inp.value);
-      if (v != null && v > 0) inp.value = fmt(v);
-    });
-    inp.addEventListener("focus", () => inp.select());
-  });
+  inputs.forEach((inp, i) => timeField(inp, { title: `${i + 1}. ${SEGMENTS[i]}`, cols: MS(0, 59) }));
+  timeField(roxInput, { title: "Roxzone (totaal)", cols: MS(0, 30) });
+  timeField(app.querySelector("#pace"), { title: "Looptempo per km", cols: MS(2, 15), fallback: 315 });
+  [...inputs, roxInput].forEach((inp) => inp.addEventListener("input", recalc));
 
   app.querySelector("#apply-pace").addEventListener("click", () => {
     const pace = parseTime(app.querySelector("#pace").value);
@@ -329,6 +452,8 @@ function renderAI() {
   const form = app.querySelector("#ai-form");
   const err = form.querySelector(".error");
   const btn = form.querySelector("button[type=submit]");
+  timeField(form.querySelector("input[name=goal]"), { title: "Doeltijd", cols: HMS(4), optional: true, fallback: 4800 });
+  timeField(form.querySelector("input[name=fiveK]"), { title: "Je 5 km-tijd", cols: MS(12, 60), optional: true, fallback: 1500 });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
