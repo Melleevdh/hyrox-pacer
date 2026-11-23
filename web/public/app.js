@@ -5,6 +5,40 @@ const SEGMENTS = [
 const DEFAULT_SPLITS = [300, 270, 300, 240, 330, 300, 330, 300, 330, 285, 330, 150, 330, 300, 345, 360];
 const DEFAULT_ROXZONE = 360;
 
+// Parcoursen. passes = hoe vaak je per run langs de IN komt (de laatste keer ga je erin).
+const COURSES = {
+  standaard: {
+    name: "Standaard",
+    label: "Standaard (8 × 1 km)",
+    passes: [1, 1, 1, 1, 1, 1, 1, 1],
+    runs: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000],
+    hint: "Elke run is 1 km. Je drukt één keer op LAP aan het eind van elke run.",
+  },
+  "utrecht-2026": {
+    name: "Utrecht 2026",
+    label: "Hyrox Utrecht 2026 (Jaarbeurs)",
+    passes: [4, 3, 3, 3, 3, 3, 3, 4],
+    runs: [1300, 920, 920, 920, 920, 920, 920, 1100],
+    hint: "Officieel: run 1 ga je de 4e keer de IN in, run 2 t/m 7 de 3e keer, en run 8 de 4e keer de WALL BALL IN. De afstanden zijn een schatting; pas ze aan als je ze exact weet.",
+  },
+};
+
+function courseKey(c) {
+  if (!c) return "standaard";
+  for (const [k, v] of Object.entries(COURSES)) {
+    if (v.passes.join() === c.passes.join() && v.runs.join() === c.runs.join()) return k;
+  }
+  return "eigen";
+}
+
+function copyCourse(c) {
+  return { name: c.name, passes: [...c.passes], runs: [...c.runs] };
+}
+
+function fmtKm(m) {
+  return (m / 1000).toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + " km";
+}
+
 // Roxzone wordt verdeeld over de 8 runs (je drukt LAP bij begin en eind van elk station).
 export function roxShare(roxzone, runIndex) {
   return Math.floor(roxzone / 8) + (runIndex < roxzone % 8 ? 1 : 0);
@@ -309,6 +343,7 @@ function renderHome() {
               ${p.active ? `<span class="pill ok">Actief op horloge</span>` : ""}
               <h3>${esc(p.name)}</h3>
               <p class="meta">Lopen ${fmt(run)} · Stations ${fmt(total - run - rox)} · Roxzone ${fmt(rox)}</p>
+              ${p.course && courseKey(p.course) !== "standaard" ? `<p class="meta">Parcours: ${esc(p.course.name)} (${p.course.passes.join("-")} rondes)</p>` : ""}
             </div>
             <strong class="plan-total">${fmt(total)}</strong>
           </div>
@@ -331,7 +366,7 @@ function renderHome() {
   plansEl.querySelectorAll("[data-copy]").forEach((b) =>
     b.addEventListener("click", () => {
       const src = state.plans.find((p) => p.id === b.dataset.copy);
-      renderEditor({ name: `${src.name} (kopie)`, splits: [...src.splits], roxzone: src.roxzone || 0 });
+      renderEditor({ name: `${src.name} (kopie)`, splits: [...src.splits], roxzone: src.roxzone || 0, course: src.course && copyCourse(src.course) });
     })
   );
   plansEl.querySelectorAll("[data-activate]").forEach((b) =>
@@ -359,6 +394,7 @@ function renderEditor(plan, aiUitleg) {
   const totalEl = app.querySelector("#total");
   const splits = plan ? [...plan.splits] : [...DEFAULT_SPLITS];
   let roxzone = plan ? plan.roxzone || 0 : DEFAULT_ROXZONE;
+  const course = copyCourse(plan?.course || COURSES.standaard);
   const roxInput = app.querySelector("#roxzone");
   const roxHint = app.querySelector("#rox-hint");
   roxInput.value = fmt(roxzone);
@@ -376,12 +412,61 @@ function renderEditor(plan, aiUitleg) {
 
   rows.innerHTML = SEGMENTS.map((name, i) => `
     <li class="${i % 2 === 0 ? "run" : "station"}">
-      <span class="seg"><b>${i + 1}</b>${name}</span>
+      <span class="seg"><b>${i + 1}</b><span>${name}${i % 2 === 0 ? ` <small class="run-info" data-run="${i / 2}"></small>` : ""}</span></span>
       <input data-i="${i}" value="${fmt(splits[i])}" aria-label="Doeltijd ${name}">
       <span class="cum" data-cum="${i}"></span>
     </li>`).join("");
 
   const inputs = [...rows.querySelectorAll("input")];
+
+  // ----- Parcours -----
+  const presetSel = app.querySelector("#course-preset");
+  const courseHint = app.querySelector("#course-hint");
+  const grid = app.querySelector("#course-grid");
+  presetSel.innerHTML =
+    Object.entries(COURSES).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("") +
+    `<option value="eigen">Eigen parcours</option>`;
+  grid.innerHTML = `<span class="cg-h">Run</span><span class="cg-h">Rondes</span><span class="cg-h">Afstand</span>` +
+    course.runs.map((_, k) => `
+      <span class="cg-run">Run ${k + 1}</span>
+      <select data-pass="${k}" aria-label="Rondes run ${k + 1}">${[1, 2, 3, 4, 5, 6].map((n) => `<option>${n}</option>`).join("")}</select>
+      <label class="cg-m"><input data-m="${k}" inputmode="numeric" pattern="[0-9]*" maxlength="4" aria-label="Afstand run ${k + 1} in meters"><span>m</span></label>`).join("");
+
+  function showCourse() {
+    const key = courseKey(course);
+    presetSel.value = key;
+    courseHint.textContent = key === "eigen"
+      ? "Eigen parcours: vul per run het aantal rondes en de afstand in."
+      : COURSES[key].hint;
+    grid.querySelectorAll("[data-pass]").forEach((el) => (el.value = String(course.passes[el.dataset.pass])));
+    grid.querySelectorAll("[data-m]").forEach((el) => {
+      if (document.activeElement !== el) el.value = String(course.runs[el.dataset.m]);
+    });
+    rows.querySelectorAll(".run-info").forEach((el) => {
+      const k = Number(el.dataset.run);
+      el.textContent = fmtKm(course.runs[k]) + (course.passes[k] > 1 ? ` · ${course.passes[k]} rondes` : "");
+    });
+  }
+  presetSel.addEventListener("change", () => {
+    if (presetSel.value === "eigen") {
+      course.name = "Eigen parcours";
+      app.querySelector("#course-details").open = true;
+    } else {
+      Object.assign(course, copyCourse(COURSES[presetSel.value]));
+    }
+    showCourse();
+  });
+  grid.addEventListener("change", (e) => {
+    const t = e.target;
+    if (t.dataset.pass != null) course.passes[t.dataset.pass] = Number(t.value);
+    if (t.dataset.m != null) {
+      const m = Math.round(Number(t.value));
+      if (m >= 100 && m <= 3000) course.runs[t.dataset.m] = m;
+    }
+    if (courseKey(course) === "eigen") course.name = "Eigen parcours";
+    showCourse();
+  });
+  showCourse();
 
   function recalc() {
     let valid = true;
@@ -418,7 +503,8 @@ function renderEditor(plan, aiUitleg) {
     const pace = parseTime(app.querySelector("#pace").value);
     if (!pace) return showError(err, "Vul een tempo in, bijv. 5:15.");
     showError(err, "");
-    inputs.forEach((inp, i) => { if (i % 2 === 0) inp.value = fmt(pace); });
+    // Tempo × afstand van elke run (bijv. 5:00/km × 1,3 km = 6:30)
+    inputs.forEach((inp, i) => { if (i % 2 === 0) inp.value = fmt(Math.round((pace * course.runs[i / 2]) / 1000)); });
     recalc();
   });
 
@@ -433,7 +519,7 @@ function renderEditor(plan, aiUitleg) {
     try {
       const res = await api("/api/plans", {
         method: "POST",
-        body: { id: plan?.id, name: nameInput.value, splits, roxzone },
+        body: { id: plan?.id, name: nameInput.value, splits, roxzone, course },
       });
       state.plans = res.plans;
       renderHome();
@@ -452,6 +538,8 @@ function renderAI() {
   const form = app.querySelector("#ai-form");
   const err = form.querySelector(".error");
   const btn = form.querySelector("button[type=submit]");
+  form.querySelector("#ai-course").innerHTML = Object.entries(COURSES)
+    .map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("");
   timeField(form.querySelector("input[name=goal]"), { title: "Doeltijd", cols: HMS(4), optional: true, fallback: 4800 });
   timeField(form.querySelector("input[name=fiveK]"), { title: "Je 5 km-tijd", cols: MS(12, 60), optional: true, fallback: 1500 });
 
@@ -465,7 +553,9 @@ function renderAI() {
     btn.disabled = true;
     btn.textContent = "Haiku denkt na…";
     try {
-      const res = await api("/api/generate", { method: "POST", body: Object.fromEntries(fd) });
+      const data = Object.fromEntries(fd);
+      data.course = copyCourse(COURSES[data.course] || COURSES.standaard);
+      const res = await api("/api/generate", { method: "POST", body: data });
       renderEditor(res.plan, res.uitleg);
     } catch (ex) {
       showError(err, ex.message);

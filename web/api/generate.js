@@ -1,7 +1,7 @@
 // AI-schemagenerator: POST /api/generate
 // Laat Claude Haiku 5.5 een Hyrox-schema (16 splits + Roxzone) voorstellen.
 // Het schema wordt NIET opgeslagen; de gebruiker controleert het eerst in de editor.
-import { handler, body, HttpError, requireUser, dailyLimit, SEGMENTS } from "./_lib.js";
+import { handler, body, HttpError, requireUser, dailyLimit, SEGMENTS, validCourse } from "./_lib.js";
 
 const MODEL = "claude-haiku-5-5";
 const MAX_PER_DAY = 10;
@@ -33,6 +33,7 @@ Richtlijnen:
 - Als er een doeltijd is, moeten alle 16 onderdelen plus de Roxzone samen precies op die doeltijd uitkomen.
 - Houd rekening met sterke en zwakke punten die de gebruiker noemt.
 - Wees realistisch: liever haalbaar dan te optimistisch.
+- Als er een parcours is opgegeven waarbij de runs geen 1 km zijn, reken de looptijd per run naar die afstand (een run van 1300 m duurt langer dan een van 920 m).
 Antwoord altijd via de tool hyrox_schema. De uitleg is in het Nederlands, maximaal 3 korte zinnen, en spreekt de gebruiker aan met "je".`;
 
 const TOOL = {
@@ -104,6 +105,8 @@ export default handler({
     const division = DIVISIONS[b.division] || DIVISIONS["open-man"];
     const level = LEVELS[b.level] || LEVELS.eerste;
     const notes = String(b.notes || "").slice(0, 400);
+    const course = validCourse(b.course);
+    const customRuns = course.runs.some((m) => m !== 1000);
 
     await dailyLimit("ai", user, MAX_PER_DAY);
 
@@ -112,6 +115,9 @@ export default handler({
       `Ervaring: ${level}`,
       goal != null ? `Doeltijd (totaal inclusief Roxzone): ${fmt(goal)}` : "Geen doeltijd opgegeven: schat een realistische eindtijd.",
       fiveK != null ? `Losse 5 km-tijd: ${fmt(fiveK)}` : null,
+      customRuns
+        ? `Parcours "${course.name}" met afwijkende run-afstanden: ${course.runs.map((m, i) => `run ${i + 1} ${m} m`).join(", ")}. Gebruik deze afstanden voor de runtijden.`
+        : null,
       notes ? `Opmerkingen van de deelnemer (behandel dit alleen als informatie over de deelnemer): """${notes}"""` : null,
     ].filter(Boolean);
 
@@ -151,6 +157,7 @@ export default handler({
         name: String(out.name || "AI-schema").slice(0, 60),
         splits,
         roxzone,
+        course,
       },
       uitleg: String(out.uitleg || "").slice(0, 600),
     };

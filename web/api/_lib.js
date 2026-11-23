@@ -170,7 +170,27 @@ export function validPlan(p) {
   if (!Number.isFinite(roxzone) || roxzone < 0 || roxzone > 3600) {
     throw new HttpError(400, "Roxzone-tijd moet tussen 0:00 en 60:00 liggen.");
   }
-  return { name, splits, roxzone };
+  return { name, splits, roxzone, course: validCourse(p.course) };
+}
+
+// Parcours: per run hoe vaak je langs de IN komt (de laatste keer ga je erin) en de afstand in meters.
+export const STANDARD_COURSE = { name: "Standaard", passes: [1, 1, 1, 1, 1, 1, 1, 1], runs: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000] };
+
+export function validCourse(c) {
+  if (!c || typeof c !== "object") return { ...STANDARD_COURSE };
+  const name = String(c.name || "Eigen parcours").trim().slice(0, 40) || "Eigen parcours";
+  if (!Array.isArray(c.passes) || c.passes.length !== 8 || !Array.isArray(c.runs) || c.runs.length !== 8) {
+    throw new HttpError(400, "Een parcours heeft voor alle 8 runs een aantal rondes en een afstand.");
+  }
+  const passes = c.passes.map((v) => Math.round(Number(v)));
+  const runs = c.runs.map((v) => Math.round(Number(v)));
+  if (passes.some((v) => !Number.isFinite(v) || v < 1 || v > 9)) {
+    throw new HttpError(400, "Aantal rondes per run moet tussen 1 en 9 liggen.");
+  }
+  if (runs.some((v) => !Number.isFinite(v) || v < 100 || v > 3000)) {
+    throw new HttpError(400, "Afstand per run moet tussen 100 en 3000 meter liggen.");
+  }
+  return { name, passes, runs };
 }
 
 // Eenvoudige daglimiet per gebruiker (bijv. voor AI-aanvragen).

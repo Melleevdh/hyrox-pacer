@@ -12,11 +12,16 @@ neemt je Hyrox op als activiteit (met 16 laps) en laat tijdens de race zien:
 De Roxzone-tijd uit je schema wordt verdeeld over de 8 runs. Druk op LAP zodra je aan een station
 begint en zodra je het station af hebt.
 
+**Parcours met rondes (bijv. Utrecht 2026: 4-3-3-3-3-3-3-4):** druk tijdens een run op LAP elke keer
+dat je langs de IN loopt. Het horloge toont `Ronde 2/3`, trilt drie keer bij de laatste ronde en
+toont dan `LAATSTE RONDE`. De volgende LAP (als je erin gaat) start het station.
+Twee keer LAP binnen 10 seconden telt als één keer.
+
 ## Knoppen
 | Knop | Voor de start | Tijdens de race | Gepauzeerd | Na finish |
 |---|---|---|---|---|
-| Boven (START) | Start | **Stoppen** + menu (hervatten/opslaan/verwijderen) | Hervatten | Opslaan-menu |
-| Onder (TERUG/LAP) | App sluiten | **Lap** (volgend onderdeel) | Menu (hervatten/opslaan/verwijderen) | Opslaan-menu |
+| Boven (START) | Start | **Racemenu**, tijd loopt door: Doorgaan / Ronde terug / Ronde erbij / Stoppen | Hervatten | Menu (ronde terug/opslaan/verwijderen) |
+| Onder (TERUG/LAP) | App sluiten | **Lap** (volgende ronde of volgend onderdeel) | Menu (hervatten/opslaan/verwijderen) | Menu (ronde terug/opslaan/verwijderen) |
 
 Aanraken en vegen doen niets, zodat zweet of een tik je race niet verstoort.
 Na de 16e lap stopt de tijd automatisch.

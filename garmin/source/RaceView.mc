@@ -1,6 +1,7 @@
 import Toybox.Activity;
 import Toybox.ActivityRecording;
 import Toybox.Application;
+import Toybox.Attention;
 import Toybox.Communications;
 import Toybox.Graphics;
 import Toybox.Lang;
@@ -28,6 +29,7 @@ class RaceView extends WatchUi.View {
     const RUNS = 8;
     const POLL_SECONDS = 5;        // koppelcode: zo vaak kijken of je gekoppeld bent
     const REFRESH_SECONDS = 15;    // voor de start: zo vaak het schema verversen
+    const LOCKOUT_MS = 10000;      // LAP binnen 10 s na de vorige druk = dubbel gedrukt, negeren
 
     var state = S_LOADING;
 
@@ -40,6 +42,16 @@ class RaceView extends WatchUi.View {
     private var _code = "";
     private var _deviceId;
     private var _hrZones = null;
+
+    // Parcours: per run hoe vaak je langs de IN komt (de laatste keer ga je erin) en de afstand.
+    private var _courseName = "Standaard";
+    private var _passes = [1, 1, 1, 1, 1, 1, 1, 1];
+    private var _runM = [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000];
+    private var _round = 0;            // aantal keer langs de IN in deze run
+    private var _lastPressMs = null;
+    private var _history = [];         // voor "Ronde terug"
+    private var _toast = null;
+    private var _toastUntil = 0;
 
     private var _session = null;
     private var _segment = 0;
@@ -214,9 +226,50 @@ class RaceView extends WatchUi.View {
         _targets = t;
         _cum = c;
         _roxzone = rox;
+        applyCourse(plan["course"]);
         var name = plan["name"];
         _planName = (name instanceof String) ? name : "Schema";
         return true;
+    }
+
+    function applyCourse(course) {
+        var passes = [1, 1, 1, 1, 1, 1, 1, 1];
+        var runs = [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000];
+        var name = "Standaard";
+        if (course instanceof Dictionary) {
+            var p = course["passes"];
+            var r = course["runs"];
+            if (p instanceof Array && p.size() == RUNS && r instanceof Array && r.size() == RUNS) {
+                var ok = true;
+                var pp = new [RUNS];
+                var rr = new [RUNS];
+                for (var i = 0; i < RUNS; i++) {
+                    pp[i] = toInt(p[i]);
+                    rr[i] = toInt(r[i]);
+                    if (pp[i] == null || pp[i] < 1 || pp[i] > 9 || rr[i] == null || rr[i] < 100 || rr[i] > 3000) {
+                        ok = false;
+                    }
+                }
+                if (ok) {
+                    passes = pp;
+                    runs = rr;
+                    var n = course["name"];
+                    name = (n instanceof String) ? n : "Eigen parcours";
+                }
+            }
+        }
+        _passes = passes;
+        _runM = runs;
+        _courseName = name;
+    }
+
+    function hasRounds() {
+        for (var i = 0; i < RUNS; i++) {
+            if (_passes[i] > 1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Getal uit JSON (Number, Long, Float of Double) -> Number; anders null.
@@ -265,6 +318,9 @@ class RaceView extends WatchUi.View {
         _segStartDist = 0.0;
         _lapDeltaS = 0;
         _speed = null;
+        _round = 0;
+        _history = [];
+        _lastPressMs = null;
         state = S_RUN;
         WatchUi.requestUpdate();
     }
@@ -279,6 +335,7 @@ class RaceView extends WatchUi.View {
         _segStartS = now;
         _segStartDist = distanceM();
         _speed = null;
+        _round = 0;
         if (_session != null) {
             _session.addLap();
         }
@@ -289,6 +346,88 @@ class RaceView extends WatchUi.View {
             }
             state = S_DONE;
         }
+        WatchUi.requestUpdate();
+    }
+
+    // LAP-knop tijdens de race. Bij een run met rondes: elke keer dat je langs de IN komt.
+    function press() {
+        if (state != S_RUN) {
+            return;
+        }
+        var t = System.getTimer();
+        if (_lastPressMs != null && t - _lastPressMs < LOCKOUT_MS) {
+            showToast("Dubbel gedrukt: genegeerd");
+            return;
+        }
+        _lastPressMs = t;
+        advance();
+    }
+
+    // Eén stap verder: volgende ronde, of het volgende onderdeel.
+    function advance() {
+        if (state != S_RUN) {
+            return;
+        }
+        _history.add([_segment, _round, _segStartS, _segStartDist, _lapDeltaS]);
+        if (_history.size() > 40) {
+            _history = _history.slice(1, null);
+        }
+        if (_segment < SEGMENTS && _segment % 2 == 0) {
+            var k = _segment / 2;
+            if (_round + 1 < _passes[k]) {
+                _round += 1;
+                if (_round == _passes[k] - 1) {
+                    buzz(true);   // laatste ronde: bij de volgende IN ga je erin
+                } else {
+                    buzz(false);
+                }
+                WatchUi.requestUpdate();
+                return;
+            }
+        }
+        buzz(false);
+        lap();
+    }
+
+    // Laatste druk ongedaan maken (verkeerd geteld).
+    function undo() {
+        if (_history.size() == 0) {
+            showToast("Niets terug te zetten");
+            return;
+        }
+        var h = _history[_history.size() - 1];
+        _history = _history.slice(0, _history.size() - 1);
+        if (state == S_DONE && _session != null) {
+            _session.start();
+        }
+        if (state == S_DONE) {
+            state = S_RUN;
+        }
+        _segment = h[0];
+        _round = h[1];
+        _segStartS = h[2];
+        _segStartDist = h[3];
+        _lapDeltaS = h[4];
+        _lastPressMs = null;
+        showToast("Eén stap terug");
+        WatchUi.requestUpdate();
+    }
+
+    function buzz(strong) {
+        if (Attention has :vibrate) {
+            if (strong) {
+                Attention.vibrate([new Attention.VibeProfile(100, 400), new Attention.VibeProfile(0, 200),
+                                   new Attention.VibeProfile(100, 400), new Attention.VibeProfile(0, 200),
+                                   new Attention.VibeProfile(100, 400)]);
+            } else {
+                Attention.vibrate([new Attention.VibeProfile(60, 150)]);
+            }
+        }
+    }
+
+    function showToast(msg) {
+        _toast = msg;
+        _toastUntil = System.getTimer() + 2500;
         WatchUi.requestUpdate();
     }
 
@@ -390,7 +529,7 @@ class RaceView extends WatchUi.View {
         if (name.length() > 22) {
             name = name.substring(0, 21) + ".";
         }
-        text(dc, cx, h * 0.14, Graphics.FONT_XTINY, "HYROX PACER", Graphics.COLOR_YELLOW);
+        text(dc, cx, h * 0.14, Graphics.FONT_XTINY, hasRounds() ? _courseName.toUpper() : "HYROX PACER", Graphics.COLOR_YELLOW);
         text(dc, cx, h * 0.27, Graphics.FONT_SMALL, name, Graphics.COLOR_WHITE);
         text(dc, cx, h * 0.43, Graphics.FONT_NUMBER_MEDIUM, fmtTime(_cum[SEGMENTS - 1]), Graphics.COLOR_WHITE);
         text(dc, cx, h * 0.56, Graphics.FONT_XTINY, "doeltijd incl. " + fmtTime(_roxzone) + " Roxzone", Graphics.COLOR_LT_GRAY);
@@ -455,7 +594,21 @@ class RaceView extends WatchUi.View {
         } else {
             label = (_segment + 1).toString() + "/16  " + _names[_segment];
         }
-        text(dc, cx, h * 0.395, Graphics.FONT_SMALL, label, labelColor);
+        var k = _segment / 2;
+        var rounds = isRun && state == S_RUN && _passes[k] > 1;
+        var lastRound = rounds && _round == _passes[k] - 1;
+        if (lastRound) {
+            // Laatste ronde: opvallende gele balk
+            var lw = w * 0.74;
+            var lh = h * 0.085;
+            dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle((w - lw) / 2, h * 0.395 - lh / 2, lw, lh, lh / 2);
+            text(dc, cx, h * 0.395, Graphics.FONT_SMALL, "LAATSTE RONDE", Graphics.COLOR_BLACK);
+        } else if (rounds) {
+            text(dc, cx, h * 0.395, Graphics.FONT_SMALL, _names[_segment] + "  Ronde " + (_round + 1).toString() + "/" + _passes[k].toString(), labelColor);
+        } else {
+            text(dc, cx, h * 0.395, Graphics.FONT_SMALL, label, labelColor);
+        }
 
         // Middelste rij: meters (alleen lopen) | tijd in onderdeel | doel
         if (active) {
@@ -467,7 +620,8 @@ class RaceView extends WatchUi.View {
             text(dc, cx, h * 0.515, Graphics.FONT_NUMBER_MEDIUM, fmtTime(segS), segColor);
             text(dc, w * 0.85, h * 0.515, Graphics.FONT_SMALL, fmtTime(_targets[_segment]), Graphics.COLOR_LT_GRAY);
             if (isRun) {
-                text(dc, w * 0.15, h * 0.515, Graphics.FONT_SMALL, fmtDist(distanceM() - _segStartDist), Graphics.COLOR_LT_GRAY);
+                text(dc, w * 0.15, h * 0.495, Graphics.FONT_SMALL, fmtDist(distanceM() - _segStartDist), Graphics.COLOR_LT_GRAY);
+                text(dc, w * 0.15, h * 0.555, Graphics.FONT_XTINY, "/" + _runM[_segment / 2].toString() + "m", Graphics.COLOR_DK_GRAY);
             }
         } else {
             text(dc, cx, h * 0.515, Graphics.FONT_NUMBER_MEDIUM, fmtTime(now), Graphics.COLOR_WHITE);
@@ -477,7 +631,9 @@ class RaceView extends WatchUi.View {
         dc.drawLine(w * 0.07, h * 0.61, w * 0.93, h * 0.61);
 
         // Tempo (lopen) / instructies
-        if (state == S_DONE) {
+        if (_toast != null && System.getTimer() < _toastUntil) {
+            text(dc, cx, h * 0.68, Graphics.FONT_XTINY, _toast, Graphics.COLOR_ORANGE);
+        } else if (state == S_DONE) {
             text(dc, cx, h * 0.68, Graphics.FONT_SMALL, "START = opslaan", Graphics.COLOR_WHITE);
         } else if (state == S_PAUSE) {
             text(dc, cx, h * 0.68, Graphics.FONT_XTINY, "START hervat - LAP menu", Graphics.COLOR_WHITE);
@@ -488,7 +644,13 @@ class RaceView extends WatchUi.View {
         // Volgend onderdeel
         if (active && state != S_PAUSE) {
             var next;
-            if (_segment + 1 < SEGMENTS) {
+            if (lastRound && _segment == SEGMENTS - 2) {
+                next = "Bij WALL BALL IN: erin";
+            } else if (lastRound) {
+                next = "Bij de IN: erin naar " + _names[_segment + 1];
+            } else if (rounds) {
+                next = "LAP elke keer langs de IN";
+            } else if (_segment + 1 < SEGMENTS) {
                 next = "Hierna: " + _names[_segment + 1] + "  " + fmtTime(_targets[_segment + 1]);
             } else {
                 next = "Hierna: FINISH  (doel " + fmtTime(_cum[SEGMENTS - 1]) + ")";
